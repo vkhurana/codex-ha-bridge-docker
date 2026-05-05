@@ -37,11 +37,11 @@ The bridge publishes these sensors:
 
 Codex usage shown on a small Home Assistant dashboard display:
 
-<img src="docs/images/device-display.svg" alt="Codex usage shown on a small dashboard display" width="360">
+<img src="docs/images/pic-1.jpg" alt="Codex usage shown on a small Home Assistant dashboard display" width="720">
 
 Home Assistant MQTT device and sensor entities:
 
-<img src="docs/images/home-assistant-sensors.svg" alt="Codex usage sensors in Home Assistant" width="360">
+<img src="docs/images/pic-2.png" alt="Codex usage sensors in Home Assistant" width="640">
 
 ## Requirements
 
