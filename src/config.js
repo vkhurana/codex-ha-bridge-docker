@@ -63,6 +63,6 @@ export function loadConfig() {
       id: process.env.DEVICE_ID || "codex_usage",
       name: process.env.DEVICE_NAME || "Codex Usage",
     },
-    pollSeconds: intEnv("POLL_SECONDS", 300),
+    pollSeconds: intEnv("POLL_SECONDS", 60),
   };
 }
