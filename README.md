@@ -52,8 +52,8 @@ The Windows helper scripts can also use the Node.js runtime bundled with the Cod
 Example `.env`:
 
 ```env
-MQTT_URL=mqtt://192.168.1.130:1883
-MQTT_USERNAME=mqtt-user
+MQTT_URL=mqtt://192.168.1.50:1883
+MQTT_USERNAME=homeassistant-mqtt-user
 MQTT_PASSWORD=your-password
 POLL_SECONDS=60
 ```
