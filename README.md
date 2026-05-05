@@ -33,6 +33,16 @@ The bridge publishes these sensors:
 | `Codex Plan` | `plus` |
 | `Codex Limit Status` | `OK` |
 
+## Screenshots
+
+Codex usage shown on a small Home Assistant dashboard display:
+
+<img src="docs/images/device-display.svg" alt="Codex usage shown on a small dashboard display" width="360">
+
+Home Assistant MQTT device and sensor entities:
+
+<img src="docs/images/home-assistant-sensors.svg" alt="Codex usage sensors in Home Assistant" width="360">
+
 ## Requirements
 
 - Windows, macOS, or Linux with Node.js 20 or newer.
@@ -53,7 +63,7 @@ Example `.env`:
 
 ```env
 MQTT_URL=mqtt://192.168.1.50:1883
-MQTT_USERNAME=homeassistant-mqtt-user
+MQTT_USERNAME=ha_demo_user
 MQTT_PASSWORD=your-password
 POLL_SECONDS=60
 ```
