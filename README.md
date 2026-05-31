@@ -14,6 +14,7 @@ It is designed to be lightweight: there are no npm package dependencies, and the
 - Creates Home Assistant sensors automatically with MQTT Discovery.
 - Tracks 5-hour usage and remaining percentage.
 - Tracks weekly usage and remaining percentage.
+- Publishes retained state and availability topics for reliable Home Assistant restarts.
 - Publishes reset times:
   - `Codex 5h Reset`: `16:49`
   - `Codex Weekly Reset`: `12/05 - 09:01`
@@ -50,6 +51,8 @@ The bridge publishes these sensors:
 | `Codex Credits` | `0 credits` |
 | `Codex Plan` | `plus` |
 | `Codex Limit Status` | `OK` |
+
+All sensor values come from the retained JSON state payload on `codex/usage/state`, with bridge availability published on `codex/usage/availability`.
 
 ---
 
@@ -284,7 +287,7 @@ The check script runs `node --check` against the source files.
 - Do not commit `.env`.
 - Do not share `CODEX_ACCESS_TOKEN` if you use it.
 - The bridge does not publish your Codex token or MQTT password to Home Assistant.
-- MQTT state payloads contain usage/limit information only.
+- MQTT state payloads contain usage/limit information only, not authentication headers, refresh tokens, or raw credential objects.
 - If OpenAI changes the Codex backend endpoint or response shape, the bridge may need an update.
 
 ---
