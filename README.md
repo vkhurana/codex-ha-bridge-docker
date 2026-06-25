@@ -105,6 +105,53 @@ Do not commit your `.env` file. It contains your MQTT password and may contain C
 
 ---
 
+## Docker on Linux
+
+The bridge can run in Docker without rewriting the app. The container uses Node.js and expects your Codex auth directory to be mounted at `/codex`.
+
+1. Copy `.env.example` to `.env`.
+2. Edit `.env` with your MQTT settings. Using an IP address for `MQTT_URL` is usually more reliable than `homeassistant.local` inside a container.
+3. Make sure Codex auth exists on the Linux host at `~/.codex/auth.json`, or set `CODEX_ACCESS_TOKEN` in `.env`.
+4. Start the bridge:
+
+```sh
+docker compose up -d --build
+```
+
+View logs:
+
+```sh
+docker compose logs -f
+```
+
+Stop the bridge:
+
+```sh
+docker compose down
+```
+
+The compose file mounts `~/.codex` into the container as `/codex` and sets `CODEX_HOME=/codex`. Keep that mount writable if you want the bridge to refresh and save Codex tokens. By default, the service runs as UID/GID `1000:1000`. If your Linux user has a different UID/GID, start it with matching values:
+
+```sh
+PUID="$(id -u)" PGID="$(id -g)" docker compose up -d --build
+```
+
+You can also run the image without Compose:
+
+```sh
+docker build -t codex-ha-bridge .
+docker run -d \
+  --name codex-ha-bridge \
+  --restart unless-stopped \
+  --user "$(id -u):$(id -g)" \
+  --env-file .env \
+  -e CODEX_HOME=/codex \
+  -v "$HOME/.codex:/codex" \
+  codex-ha-bridge
+```
+
+---
+
 ## Manual start
 
 If Node.js is installed and available in your terminal:
@@ -214,6 +261,9 @@ severity:
 ```text
 .
 ├── .env.example
+├── .dockerignore
+├── Dockerfile
+├── docker-compose.yml
 ├── README.md
 ├── package.json
 ├── start.bat

@@ -1,0 +1,12 @@
+services:
+  codex-ha-bridge:
+    build: .
+    container_name: codex-ha-bridge
+    restart: unless-stopped
+    user: "${PUID:-1000}:${PGID:-1000}"
+    env_file:
+      - .env
+    environment:
+      CODEX_HOME: /codex
+    volumes:
+      - ${HOME}/.codex:/codex
