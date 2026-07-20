@@ -13,15 +13,14 @@ console.log("If the connection succeeds, you will see 'MQTT connected.'.");
 
 const client = createMqttClient(config.mqtt);
 
-let discoveryPublished = false;
+let discoveryShape = null;
 let running = false;
 
 client.on("connect", async () => {
   console.log("MQTT connected.");
+  discoveryShape = null;
   try {
     await publishAvailability(client, config, "online");
-    await publishDiscovery(client, config);
-    discoveryPublished = true;
     await pollOnce();
   } catch (error) {
     console.error(error.message);
@@ -37,17 +36,30 @@ async function pollOnce() {
   running = true;
 
   try {
-    if (!discoveryPublished) {
-      await publishDiscovery(client, config);
-      discoveryPublished = true;
-    }
-
     const usage = await fetchCodexUsage(config.codex);
     const state = flattenForMqtt(usage);
+    const nextDiscoveryShape = [
+      state.primary_used_percent != null,
+      state.secondary_used_percent != null,
+    ].join(":");
+
+    if (nextDiscoveryShape !== discoveryShape) {
+      await publishDiscovery(client, config, state);
+      discoveryShape = nextDiscoveryShape;
+    }
+
     await publishAvailability(client, config, "online");
     await publishState(client, config, state);
+
+    const publishedWindows = [];
+    if (state.primary_used_percent != null) {
+      publishedWindows.push(`5h ${state.primary_used_percent}% used`);
+    }
+    if (state.secondary_used_percent != null) {
+      publishedWindows.push(`weekly ${state.secondary_used_percent}% used`);
+    }
     console.log(
-      `Published Codex usage: 5h ${state.primary_used_percent ?? "?"}% used, weekly ${state.secondary_used_percent ?? "?"}% used.`,
+      `Published Codex usage: ${publishedWindows.join(", ") || "no usage windows available"}.`,
     );
   } catch (error) {
     await publishAvailability(client, config, "offline").catch(() => {});

@@ -2,7 +2,7 @@
 
 Publish OpenAI Codex usage limits to Home Assistant over MQTT.
 
-**Codex Home Assistant MQTT Bridge** reads the same Codex usage information used by the Codex client, normalizes it, and publishes Home Assistant MQTT Discovery entities for the 5-hour and weekly usage windows.
+**Codex Home Assistant MQTT Bridge** reads the same Codex usage information used by the Codex client, normalizes it, and publishes Home Assistant MQTT Discovery entities for the usage windows returned by the backend.
 
 It is designed to be lightweight: there are no npm package dependencies, and the included Windows helper scripts can run the bridge silently in the background at sign-in.
 
@@ -12,8 +12,8 @@ It is designed to be lightweight: there are no npm package dependencies, and the
 
 - Publishes Codex usage to Home Assistant via MQTT.
 - Creates Home Assistant sensors automatically with MQTT Discovery.
-- Tracks 5-hour usage and remaining percentage.
-- Tracks weekly usage and remaining percentage.
+- Tracks available 5-hour and weekly usage windows.
+- Removes stale discovery entities when a usage window is no longer returned.
 - Publishes retained state and availability topics for reliable Home Assistant restarts.
 - Publishes reset times:
   - `Codex 5h Reset`: `16:49`
@@ -38,7 +38,7 @@ Home Assistant MQTT device and sensor entities:
 
 ## Home Assistant entities
 
-The bridge publishes these sensors:
+The bridge publishes these sensors when their corresponding usage window is available:
 
 | Sensor | Example |
 | --- | --- |
@@ -53,6 +53,8 @@ The bridge publishes these sensors:
 | `Codex Limit Status` | `OK` |
 
 All sensor values come from the retained JSON state payload on `codex/usage/state`, with bridge availability published on `codex/usage/availability`.
+
+Plan, credits, and limit status sensors are always published. Usage and reset sensors are added or removed automatically as the backend's available limit windows change.
 
 ---
 

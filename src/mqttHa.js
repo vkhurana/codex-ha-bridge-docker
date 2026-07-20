@@ -1,17 +1,42 @@
 import { SimpleMqttClient } from "./simpleMqtt.js";
 
 const SENSOR_DEFS = [
-  ["primary_used_percent", "Codex 5h Used", "%", "mdi:timer-sand"],
-  ["primary_remaining_percent", "Codex 5h Remaining", "%", "mdi:timer-outline"],
-  ["primary_reset_time", "Codex 5h Reset", null, "mdi:clock-outline"],
-  ["secondary_used_percent", "Codex Weekly Used", "%", "mdi:calendar-week"],
+  ["primary_used_percent", "Codex 5h Used", "%", "mdi:timer-sand", "primary"],
+  [
+    "primary_remaining_percent",
+    "Codex 5h Remaining",
+    "%",
+    "mdi:timer-outline",
+    "primary",
+  ],
+  [
+    "primary_reset_time",
+    "Codex 5h Reset",
+    null,
+    "mdi:clock-outline",
+    "primary",
+  ],
+  [
+    "secondary_used_percent",
+    "Codex Weekly Used",
+    "%",
+    "mdi:calendar-week",
+    "secondary",
+  ],
   [
     "secondary_remaining_percent",
     "Codex Weekly Remaining",
     "%",
     "mdi:calendar-check",
+    "secondary",
   ],
-  ["secondary_reset_time", "Codex Weekly Reset", null, "mdi:calendar-clock"],
+  [
+    "secondary_reset_time",
+    "Codex Weekly Reset",
+    null,
+    "mdi:calendar-clock",
+    "secondary",
+  ],
   ["credits_balance", "Codex Credits", "credits", "mdi:cash"],
   ["plan", "Codex Plan", null, "mdi:account-badge"],
   ["rate_limit_reached_type", "Codex Limit Status", null, "mdi:alert-circle"],
@@ -36,7 +61,12 @@ function availabilityTopic(config) {
   return `${config.mqtt.baseTopic}/availability`;
 }
 
-export async function publishDiscovery(client, config) {
+function hasUsageWindow(state, windowName) {
+  if (!windowName) return true;
+  return state?.[`${windowName}_used_percent`] != null;
+}
+
+export async function publishDiscovery(client, config, state) {
   const device = {
     identifiers: [config.device.id],
     name: config.device.name,
@@ -44,7 +74,13 @@ export async function publishDiscovery(client, config) {
     model: "Codex Usage Bridge",
   };
 
-  for (const [key, name, unit, icon] of SENSOR_DEFS) {
+  for (const [key, name, unit, icon, windowName] of SENSOR_DEFS) {
+    const topic = discoveryTopic(config, key);
+    if (!hasUsageWindow(state, windowName)) {
+      await publish(client, topic, "", true);
+      continue;
+    }
+
     const payload = {
       name,
       unique_id: `${config.device.id}_${key}`,
@@ -58,7 +94,7 @@ export async function publishDiscovery(client, config) {
 
     if (unit) payload.unit_of_measurement = unit;
 
-    await publish(client, discoveryTopic(config, key), payload, true);
+    await publish(client, topic, payload, true);
   }
 }
 
