@@ -1,5 +1,8 @@
 import { getCodexBearerAuth } from "./auth.js";
 
+const FIVE_HOUR_WINDOW_SECONDS = 5 * 60 * 60;
+const WEEKLY_WINDOW_SECONDS = 7 * 24 * 60 * 60;
+
 function normalizeWindow(window) {
   if (!window) return null;
 
@@ -22,6 +25,48 @@ function normalizeWindow(window) {
 
 function firstSome(...values) {
   return values.find((value) => value !== undefined && value !== null);
+}
+
+function windowDurationSeconds(window) {
+  if (!window) return null;
+
+  const seconds = Number(window.limit_window_seconds);
+  if (Number.isFinite(seconds) && seconds > 0) return seconds;
+
+  const minutes = Number(window.window_minutes);
+  return Number.isFinite(minutes) && minutes > 0 ? minutes * 60 : null;
+}
+
+function selectUsageWindows(rateLimit) {
+  const positionalPrimary = firstSome(
+    rateLimit.primary_window,
+    rateLimit.primary,
+  );
+  const positionalSecondary = firstSome(
+    rateLimit.secondary_window,
+    rateLimit.secondary,
+  );
+  const windows = [positionalPrimary, positionalSecondary].filter(Boolean);
+
+  const fiveHourWindow = windows.find(
+    (window) => windowDurationSeconds(window) === FIVE_HOUR_WINDOW_SECONDS,
+  );
+  const weeklyWindow = windows.find(
+    (window) => windowDurationSeconds(window) === WEEKLY_WINDOW_SECONDS,
+  );
+
+  return {
+    primary:
+      fiveHourWindow ??
+      (windowDurationSeconds(positionalPrimary) !== WEEKLY_WINDOW_SECONDS
+        ? positionalPrimary
+        : null),
+    secondary:
+      weeklyWindow ??
+      (windowDurationSeconds(positionalSecondary) !== FIVE_HOUR_WINDOW_SECONDS
+        ? positionalSecondary
+        : null),
+  };
 }
 
 function formatResetTime(epochSeconds, includeDate) {
@@ -50,12 +95,9 @@ function normalizeLimitStatus(status) {
 
 function normalizeSnapshot(payload) {
   const rateLimit = payload.rate_limit ?? payload.rateLimits ?? {};
-  const primary = normalizeWindow(
-    firstSome(rateLimit.primary_window, rateLimit.primary),
-  );
-  const secondary = normalizeWindow(
-    firstSome(rateLimit.secondary_window, rateLimit.secondary),
-  );
+  const windows = selectUsageWindows(rateLimit);
+  const primary = normalizeWindow(windows.primary);
+  const secondary = normalizeWindow(windows.secondary);
 
   return {
     source: "codex_backend",
