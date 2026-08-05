@@ -12,12 +12,13 @@ It is designed to be lightweight: there are no npm package dependencies, and the
 
 - Publishes Codex usage to Home Assistant via MQTT.
 - Creates Home Assistant sensors automatically with MQTT Discovery.
-- Tracks available 5-hour and weekly usage windows.
+- Tracks available 5-hour plus weekly or monthly usage windows (including Codex Go).
 - Removes stale discovery entities when a usage window is no longer returned.
 - Publishes retained state and availability topics for reliable Home Assistant restarts.
 - Publishes reset times:
   - `Codex 5h Reset`: `16:49`
   - `Codex Weekly Reset`: `12/05 - 09:01`
+  - `Codex Monthly Reset`: `12/05 - 09:01` (Codex Go)
 - Publishes plan, credits, and limit status.
 - Runs without npm dependencies.
 - Includes Windows startup helpers that run silently in the background.
@@ -45,9 +46,9 @@ The bridge publishes these sensors when their corresponding usage window is avai
 | `Codex 5h Used` | `49%` |
 | `Codex 5h Remaining` | `51%` |
 | `Codex 5h Reset` | `16:49` |
-| `Codex Weekly Used` | `8%` |
-| `Codex Weekly Remaining` | `92%` |
-| `Codex Weekly Reset` | `12/05 - 09:01` |
+| `Codex Weekly Used` or `Codex Monthly Used` | `8%` |
+| `Codex Weekly Remaining` or `Codex Monthly Remaining` | `92%` |
+| `Codex Weekly Reset` or `Codex Monthly Reset` | `12/05 - 09:01` |
 | `Codex Credits` | `0 credits` |
 | `Codex Plan` | `plus` |
 | `Codex Limit Status` | `OK` |
@@ -242,12 +243,16 @@ severity:
   red: 90
 ```
 
-Weekly usage gauge:
+Long-term usage gauge (Weekly on Plus, Monthly on Go):
+
+Use the entity Home Assistant creates: typically `sensor.codex_weekly_used` for
+Plus or `sensor.codex_monthly_used` for a new Go installation. Existing entities
+keep their entity ID after their display name changes.
 
 ```yaml
 type: gauge
-entity: sensor.codex_weekly_used
-name: Codex Weekly
+entity: sensor.codex_monthly_used
+name: Codex long-term usage
 min: 0
 max: 100
 severity:

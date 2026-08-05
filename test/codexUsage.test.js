@@ -61,6 +61,27 @@ test("maps a lone seven-day primary_window to weekly usage", async () => {
   assert.equal(state.primary_window_minutes, null);
   assert.equal(state.secondary_used_percent, 8);
   assert.equal(state.secondary_window_minutes, 10_080);
+  assert.equal(state.secondary_window_label, "Weekly");
+});
+
+test("maps a lone monthly primary_window to Go's long-term usage", async () => {
+  const state = await normalizePayload({
+    plan_type: "go",
+    rate_limit: {
+      primary_window: {
+        used_percent: 18,
+        limit_window_seconds: 30 * 24 * 60 * 60,
+        reset_at: 1_800_500_000,
+      },
+      secondary_window: null,
+    },
+  });
+
+  assert.equal(state.plan, "go");
+  assert.equal(state.primary_used_percent, null);
+  assert.equal(state.secondary_used_percent, 18);
+  assert.equal(state.secondary_window_minutes, 43_200);
+  assert.equal(state.secondary_window_label, "Monthly");
 });
 
 test("uses window duration even when the backend reverses positions", async () => {
@@ -79,6 +100,8 @@ test("uses window duration even when the backend reverses positions", async () =
 
   assert.equal(state.primary_used_percent, 23);
   assert.equal(state.secondary_used_percent, 45);
+  assert.equal(state.primary_window_label, "5h");
+  assert.equal(state.secondary_window_label, "Weekly");
 });
 
 test("retains positional fallback when duration metadata is absent", async () => {

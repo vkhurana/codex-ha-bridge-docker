@@ -40,7 +40,9 @@ async function pollOnce() {
     const state = flattenForMqtt(usage);
     const nextDiscoveryShape = [
       state.primary_used_percent != null,
+      state.primary_window_label,
       state.secondary_used_percent != null,
+      state.secondary_window_label,
     ].join(":");
 
     if (nextDiscoveryShape !== discoveryShape) {
@@ -53,10 +55,14 @@ async function pollOnce() {
 
     const publishedWindows = [];
     if (state.primary_used_percent != null) {
-      publishedWindows.push(`5h ${state.primary_used_percent}% used`);
+      publishedWindows.push(
+        `${state.primary_window_label ?? "primary"} ${state.primary_used_percent}% used`,
+      );
     }
     if (state.secondary_used_percent != null) {
-      publishedWindows.push(`weekly ${state.secondary_used_percent}% used`);
+      publishedWindows.push(
+        `${state.secondary_window_label ?? "secondary"} ${state.secondary_used_percent}% used`,
+      );
     }
     console.log(
       `Published Codex usage: ${publishedWindows.join(", ") || "no usage windows available"}.`,

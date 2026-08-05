@@ -1,38 +1,38 @@
 import { SimpleMqttClient } from "./simpleMqtt.js";
 
 const SENSOR_DEFS = [
-  ["primary_used_percent", "Codex 5h Used", "%", "mdi:timer-sand", "primary"],
+  ["primary_used_percent", "Used", "%", "mdi:timer-sand", "primary"],
   [
     "primary_remaining_percent",
-    "Codex 5h Remaining",
+    "Remaining",
     "%",
     "mdi:timer-outline",
     "primary",
   ],
   [
     "primary_reset_time",
-    "Codex 5h Reset",
+    "Reset",
     null,
     "mdi:clock-outline",
     "primary",
   ],
   [
     "secondary_used_percent",
-    "Codex Weekly Used",
+    "Used",
     "%",
     "mdi:calendar-week",
     "secondary",
   ],
   [
     "secondary_remaining_percent",
-    "Codex Weekly Remaining",
+    "Remaining",
     "%",
     "mdi:calendar-check",
     "secondary",
   ],
   [
     "secondary_reset_time",
-    "Codex Weekly Reset",
+    "Reset",
     null,
     "mdi:calendar-clock",
     "secondary",
@@ -41,6 +41,11 @@ const SENSOR_DEFS = [
   ["plan", "Codex Plan", null, "mdi:account-badge"],
   ["rate_limit_reached_type", "Codex Limit Status", null, "mdi:alert-circle"],
 ];
+
+function windowLabel(state, windowName) {
+  return state?.[`${windowName}_window_label`] ||
+    (windowName === "primary" ? "Primary" : "Secondary");
+}
 
 export function createMqttClient(config) {
   return new SimpleMqttClient(config.url, {
@@ -74,7 +79,7 @@ export async function publishDiscovery(client, config, state) {
     model: "Codex Usage Bridge",
   };
 
-  for (const [key, name, unit, icon, windowName] of SENSOR_DEFS) {
+  for (const [key, suffix, unit, icon, windowName] of SENSOR_DEFS) {
     const topic = discoveryTopic(config, key);
     if (!hasUsageWindow(state, windowName)) {
       await publish(client, topic, "", true);
@@ -82,7 +87,9 @@ export async function publishDiscovery(client, config, state) {
     }
 
     const payload = {
-      name,
+      name: windowName
+        ? `Codex ${windowLabel(state, windowName)} ${suffix}`
+        : `Codex ${suffix}`,
       unique_id: `${config.device.id}_${key}`,
       state_topic: stateTopic(config),
       availability_topic: availabilityTopic(config),
