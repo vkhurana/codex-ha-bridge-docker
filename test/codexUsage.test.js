@@ -3,25 +3,43 @@ import test from "node:test";
 
 import { fetchCodexUsage, flattenForMqtt } from "../src/codexUsage.js";
 
-async function normalizePayload(payload) {
+async function fetchPayload(payload) {
   const originalFetch = globalThis.fetch;
+  const originalConsoleLog = console.log;
+  const logs = [];
   globalThis.fetch = async () =>
     new Response(JSON.stringify(payload), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
+  console.log = (message) => logs.push(message);
 
   try {
-    return flattenForMqtt(
-      await fetchCodexUsage({
-        accessToken: "test-token",
-        backendUrl: "https://example.test/usage",
-      }),
-    );
+    return {
+      state: flattenForMqtt(
+        await fetchCodexUsage({
+          accessToken: "test-token",
+          backendUrl: "https://example.test/usage",
+        }),
+      ),
+      logs,
+    };
   } finally {
     globalThis.fetch = originalFetch;
+    console.log = originalConsoleLog;
   }
 }
+
+async function normalizePayload(payload) {
+  return (await fetchPayload(payload)).state;
+}
+
+test("logs the raw backend usage JSON", async () => {
+  const payload = { plan_type: "go", rate_limit: {} };
+  const { logs } = await fetchPayload(payload);
+
+  assert.deepEqual(logs, [`Raw Codex usage JSON: ${JSON.stringify(payload)}`]);
+});
 
 test("maps the original primary and secondary windows", async () => {
   const state = await normalizePayload({
