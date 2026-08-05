@@ -2,6 +2,8 @@ import { getCodexBearerAuth } from "./auth.js";
 
 const FIVE_HOUR_WINDOW_SECONDS = 5 * 60 * 60;
 const WEEKLY_WINDOW_SECONDS = 7 * 24 * 60 * 60;
+const DAILY_WINDOW_SECONDS = 24 * 60 * 60;
+const MONTHLY_WINDOW_MIN_SECONDS = 28 * DAILY_WINDOW_SECONDS;
 
 function normalizeWindow(window) {
   if (!window) return null;
@@ -37,6 +39,20 @@ function windowDurationSeconds(window) {
   return Number.isFinite(minutes) && minutes > 0 ? minutes * 60 : null;
 }
 
+function windowLabel(window) {
+  const duration = windowDurationSeconds(window);
+  if (!duration) return null;
+  if (duration === FIVE_HOUR_WINDOW_SECONDS) return "5h";
+  if (duration === WEEKLY_WINDOW_SECONDS) return "Weekly";
+  if (duration >= MONTHLY_WINDOW_MIN_SECONDS) return "Monthly";
+
+  const hours = duration / (60 * 60);
+  if (Number.isInteger(hours) && hours < 24) return `${hours}h`;
+
+  const days = duration / DAILY_WINDOW_SECONDS;
+  return Number.isInteger(days) ? `${days}d` : null;
+}
+
 function selectUsageWindows(rateLimit) {
   const positionalPrimary = firstSome(
     rateLimit.primary_window,
@@ -51,18 +67,18 @@ function selectUsageWindows(rateLimit) {
   const fiveHourWindow = windows.find(
     (window) => windowDurationSeconds(window) === FIVE_HOUR_WINDOW_SECONDS,
   );
-  const weeklyWindow = windows.find(
-    (window) => windowDurationSeconds(window) === WEEKLY_WINDOW_SECONDS,
+  const longerTermWindow = windows.find(
+    (window) => windowDurationSeconds(window) >= DAILY_WINDOW_SECONDS,
   );
 
   return {
     primary:
       fiveHourWindow ??
-      (windowDurationSeconds(positionalPrimary) !== WEEKLY_WINDOW_SECONDS
+      (windowDurationSeconds(positionalPrimary) < DAILY_WINDOW_SECONDS
         ? positionalPrimary
         : null),
     secondary:
-      weeklyWindow ??
+      longerTermWindow ??
       (windowDurationSeconds(positionalSecondary) !== FIVE_HOUR_WINDOW_SECONDS
         ? positionalSecondary
         : null),
@@ -106,6 +122,8 @@ function normalizeSnapshot(payload) {
     limit_id: "codex",
     primary,
     secondary,
+    primary_window_label: windowLabel(windows.primary),
+    secondary_window_label: windowLabel(windows.secondary),
     credits: payload.credits
       ? {
           has_credits: Boolean(payload.credits.has_credits),
@@ -148,12 +166,14 @@ export function flattenForMqtt(snapshot) {
     primary_used_percent: snapshot.primary?.used_percent ?? null,
     primary_remaining_percent: snapshot.primary?.remaining_percent ?? null,
     primary_window_minutes: snapshot.primary?.window_minutes ?? null,
+    primary_window_label: snapshot.primary_window_label ?? null,
     primary_reset_at: snapshot.primary?.reset_at ?? null,
     primary_reset_time: formatResetTime(snapshot.primary?.reset_at, false),
     primary_reset_after_seconds: snapshot.primary?.reset_after_seconds ?? null,
     secondary_used_percent: snapshot.secondary?.used_percent ?? null,
     secondary_remaining_percent: snapshot.secondary?.remaining_percent ?? null,
     secondary_window_minutes: snapshot.secondary?.window_minutes ?? null,
+    secondary_window_label: snapshot.secondary_window_label ?? null,
     secondary_reset_at: snapshot.secondary?.reset_at ?? null,
     secondary_reset_time: formatResetTime(snapshot.secondary?.reset_at, true),
     secondary_reset_after_seconds:

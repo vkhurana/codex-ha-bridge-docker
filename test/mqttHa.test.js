@@ -69,3 +69,19 @@ test("publishes discovery for both windows when both are available", async () =>
   assert.equal(usageWindows.length, 6);
   assert.ok(usageWindows.every((message) => message.body !== ""));
 });
+
+test("labels a monthly long-term window in Home Assistant discovery", async () => {
+  const client = recordingClient();
+
+  await publishDiscovery(client, config, {
+    primary_used_percent: null,
+    secondary_used_percent: 18,
+    secondary_window_label: "Monthly",
+  });
+
+  const monthly = client.messages.find((message) =>
+    message.topic.includes("/secondary_used_percent/"),
+  );
+
+  assert.equal(JSON.parse(monthly.body).name, "Codex Monthly Used");
+});
