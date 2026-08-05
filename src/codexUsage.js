@@ -155,7 +155,9 @@ export async function fetchCodexUsage(config) {
     throw new Error(`Codex usage request failed: HTTP ${res.status} ${body}`);
   }
 
-  return normalizeSnapshot(await res.json());
+  const payload = await res.json();
+  console.log(`Raw Codex usage JSON: ${JSON.stringify(payload)}`);
+  return normalizeSnapshot(payload);
 }
 
 export function flattenForMqtt(snapshot) {
