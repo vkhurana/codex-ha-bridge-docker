@@ -9,9 +9,12 @@ function normalizeWindow(window) {
   if (!window) return null;
 
   const usedPercent = Number(window.used_percent ?? 0);
-  const windowSeconds = Number(window.limit_window_seconds ?? 0);
+  const windowSeconds = Number(
+    window.limit_window_seconds ?? window.window_duration_seconds ?? 0,
+  );
   const windowMinutes =
     window.window_minutes ??
+    window.window_duration_mins ??
     (Number.isFinite(windowSeconds) && windowSeconds > 0
       ? Math.ceil(windowSeconds / 60)
       : null);
@@ -20,7 +23,7 @@ function normalizeWindow(window) {
     used_percent: usedPercent,
     remaining_percent: Math.max(0, 100 - usedPercent),
     window_minutes: windowMinutes,
-    reset_at: window.reset_at ?? null,
+    reset_at: window.reset_at ?? window.resets_at ?? null,
     reset_after_seconds: window.reset_after_seconds ?? null,
   };
 }
@@ -32,16 +35,18 @@ function firstSome(...values) {
 function windowDurationSeconds(window) {
   if (!window) return null;
 
-  const seconds = Number(window.limit_window_seconds);
+  const seconds = Number(
+    window.limit_window_seconds ?? window.window_duration_seconds,
+  );
   if (Number.isFinite(seconds) && seconds > 0) return seconds;
 
-  const minutes = Number(window.window_minutes);
+  const minutes = Number(window.window_minutes ?? window.window_duration_mins);
   return Number.isFinite(minutes) && minutes > 0 ? minutes * 60 : null;
 }
 
-function windowLabel(window) {
+function windowLabel(window, fallback = null) {
   const duration = windowDurationSeconds(window);
-  if (!duration) return null;
+  if (!duration) return fallback;
   if (duration === FIVE_HOUR_WINDOW_SECONDS) return "5h";
   if (duration === WEEKLY_WINDOW_SECONDS) return "Weekly";
   if (duration >= MONTHLY_WINDOW_MIN_SECONDS) return "Monthly";
@@ -55,10 +60,14 @@ function windowLabel(window) {
 
 function selectUsageWindows(rateLimit) {
   const positionalPrimary = firstSome(
+    rateLimit.five_hour,
+    rateLimit.fiveHour,
     rateLimit.primary_window,
     rateLimit.primary,
   );
   const positionalSecondary = firstSome(
+    rateLimit.weekly,
+    rateLimit.weekly_window,
     rateLimit.secondary_window,
     rateLimit.secondary,
   );
@@ -110,10 +119,13 @@ function normalizeLimitStatus(status) {
 }
 
 function normalizeSnapshot(payload) {
-  const rateLimit = payload.rate_limit ?? payload.rateLimits ?? {};
+  const rateLimit =
+    payload.rate_limit ?? payload.rate_limits ?? payload.rateLimits ?? {};
   const windows = selectUsageWindows(rateLimit);
   const primary = normalizeWindow(windows.primary);
   const secondary = normalizeWindow(windows.secondary);
+  const explicitFiveHour = firstSome(rateLimit.five_hour, rateLimit.fiveHour);
+  const explicitWeekly = firstSome(rateLimit.weekly, rateLimit.weekly_window);
 
   return {
     source: "codex_backend",
@@ -122,8 +134,22 @@ function normalizeSnapshot(payload) {
     limit_id: "codex",
     primary,
     secondary,
-    primary_window_label: windowLabel(windows.primary),
-    secondary_window_label: windowLabel(windows.secondary),
+    primary_window_label: windowLabel(
+      windows.primary,
+      windows.primary === explicitFiveHour
+        ? "5h"
+        : windows.primary === explicitWeekly
+          ? "Weekly"
+          : null,
+    ),
+    secondary_window_label: windowLabel(
+      windows.secondary,
+      windows.secondary === explicitFiveHour
+        ? "5h"
+        : windows.secondary === explicitWeekly
+          ? "Weekly"
+          : null,
+    ),
     credits: payload.credits
       ? {
           has_credits: Boolean(payload.credits.has_credits),
